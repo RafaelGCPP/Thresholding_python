@@ -5,12 +5,18 @@ Created on Wed Jun 18 13:14:52 2014
 @author: Rafael
 """
 import numpy as np
-import scipy.linalg.lapack as lpk
+import numpy.linalg as la
+import scipy.linalg.blas 
+
 from cvxopt import matrix
 cimport numpy as np
 cimport cython
 
 np.import_array()
+
+
+from numpy cimport float64_t, ndarray, complex128_t, complex64_t
+from numpy import float64, ndarray, complex128, complex64
 
 ctypedef float64_t DOUBLE
 ctypedef complex128_t dcomplex
@@ -21,11 +27,13 @@ cdef extern from "f2pyptr.h":
     void *f2py_pointer(object) except NULL
 
 
-from blas_types cimport dgemm_t, zgemm_t, ddot_t, dgemv_t, zgemv_t, zdotu_t
+from blas_types cimport dgemm_t, zgemm_t, ddot_t, dgemv_t, zdotu_t, zgemv_t
 
-def get_func(name,dtype):
-	return scipy.linalg.blas.get_blas_funcs(name, dtype)._cpointer
-	
+
+def get_func(name,dt):
+    return scipy.linalg.blas.get_blas_funcs(name, dtype=dt)._cpointer
+
+
 cdef dgemm_t *dgemm = <dgemm_t*>f2py_pointer(get_func('gemm', float64))
 cdef zgemm_t *zgemm = <zgemm_t*>f2py_pointer(get_func('gemm', complex128))
 cdef  ddot_t *ddot  = <ddot_t*> f2py_pointer(get_func('dot', float64))
@@ -47,10 +55,10 @@ def STc(x,theta,copy=True):
 def dSTc(x,theta):
     eps=1e-12
     z=x.copy()
-    az=abs(z)
+    az=np.abs(z)
     az3=az**3+eps
-    x=real(z)
-    y=imag(z)
+    x=np.real(z)
+    y=np.imag(z)
     
     d1R=1-(theta*y**2)/az3
     d2I=1-(theta*x**2)/az3
@@ -62,18 +70,18 @@ def dSTc(x,theta):
 	
 def CAMP(A,y,beta,verbose=False):
     M,N=A.shape
-    x_old=zeros((N,1))
+    x_old=np.zeros((N,1))
     z=y.copy()  
     eps=1e-12
     it=0
     while True:
-        tz=dot(A.T.conj(),z)+x_old
-        sigma_hat=beta*1/sqrt(2)*median(abs(tz))
+        tz=np.dot(A.T.conj(),z)+x_old
+        sigma_hat=beta*1/np.sqrt(2)*np.median(abs(tz))
         x=STc(tz,sigma_hat)
         (dR,dI)=dSTc(tz,sigma_hat)
-        z=y-dot(A,x)+z*(sum(dR)+sum(dI))/(2*N)
-        n=norm(x-x_old,2)
-        if n<eps*norm(x,2):
+        z=y-np.dot(A,x)+z*(sum(dR)+sum(dI))/(2*N)
+        n=la.norm(x-x_old,2)
+        if n<eps*la.norm(x,2):
             break
         if verbose:
             it+=1

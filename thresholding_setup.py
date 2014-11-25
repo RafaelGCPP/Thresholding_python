@@ -11,6 +11,6 @@ import numpy
 
 setup(
   name = 'CAMP_C',
-  ext_modules = cythonize("CAMP_C.pyx"),
+  ext_modules = cythonize(["CAMP_C.pyx"]),
   include_dirs=[numpy.get_include()]
 )
