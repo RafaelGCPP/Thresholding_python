@@ -89,8 +89,11 @@ def AMP2(A,y,beta,verbose=False):
             break
         if verbose:
             it+=1
-            print "AMP iteration: %d (error %g)"%(it,n)
+            print "AMP iteration: %d (error %g, %g)"%(it,n,theta)
         x_old=x
+    if verbose:
+        it+=1
+        print "AMP iteration: %d (error %g, %g)"%(it,n,theta)
         
     return x
 
@@ -103,17 +106,24 @@ def CAMP(A,y,beta,verbose=False):
     while True:
         tz=dot(A.T.conj(),z)+x_old
         sigma_hat=beta*1/sqrt(2)*median(abs(tz))
+#        sigma_hat=sqrt(beta*1.0/M*sum(z*z))
         x=STc(tz,sigma_hat)
         (dR,dI)=dSTc(tz,sigma_hat)
         z=y-dot(A,x)+z*(sum(dR)+sum(dI))/(2*N)
         n=norm(x-x_old,2)
-        if n<eps*norm(x,2):
+        if it>1000:
+            break
+        if n<=eps*norm(x,2):
             break
         if verbose:
             it+=1
-            print "AMP iteration: %d (error %g)"%(it,n)
+            if (it%10)==0:
+                print "AMP iteration: %d (error %g, %g)"%(it,n,sigma_hat)
         x_old=x
-
+    if verbose:
+        it+=1
+        print "AMP iteration: %d (error %g, %g)"%(it,n,sigma_hat)
+     
     return x
 
 def main():
@@ -121,6 +131,7 @@ def main():
     from numpy.random import standard_normal,choice
     from numpy.linalg import qr
     from numpy import dot
+    import CAMP_C
     #from myOmp import omp_naive as omp
     N=2000
     M=900
@@ -136,7 +147,7 @@ def main():
     x[j,:]=0
     
     y=dot(A,x)+sigma_n*standard_normal((M,1))
-    xhat=CAMP(A,y,1)
+    xhat=CAMP_C.CAMP(A,y,1,True)
     print norm(x-xhat)/N
     close('all')
     plot(real(x))
